@@ -29,5 +29,28 @@
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="src/main/conf"/>
+	<classpathentry kind="lib" path="src/main/libs/log4j-1.2.17.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/jsch-0.1.50.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/VersionOne.SDK.Java.APIClient-13.0.0.146.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/VersionOne.SDK.Java.ObjectModel-12.1.0.150.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/junit-4.11.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/jmock-2.6.0.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/bsh-core-2.0b4.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/cglib-nodep-2.2.3.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/hamcrest-core-1.3-javadoc.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/hamcrest-core-1.3-sources.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/hamcrest-core-1.3.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/hamcrest-library-1.3-javadoc.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/hamcrest-library-1.3-sources.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/hamcrest-library-1.3.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/hamcrest-unit-test-1.3-sources.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/hamcrest-unit-test-1.3.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/jmock-junit3-2.6.0.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/jmock-junit4-2.6.0.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/jmock-legacy-2.6.0.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/jmock-script-2.6.0.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/objenesis-1.0.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/org-eclipse-jgit.jar"/>
+	<classpathentry kind="lib" path="src/main/libs/hibernate-core-4.3.1.Final.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

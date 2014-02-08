@@ -3,6 +3,7 @@ package com.versionone.git;
 import com.versionone.git.configuration.GitConnection;
 import com.versionone.git.configuration.ChangeSet;
 import com.versionone.git.storage.IDbStorage;
+import java.io.ByteArrayOutputStream;
 
 import org.apache.log4j.Logger;
 import org.eclipse.jgit.api.Git;
@@ -13,6 +14,12 @@ import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevSort;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.revwalk.RevTree;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.RawTextComparator;
+import org.eclipse.jgit.diff.DiffEntry.ChangeType;
 import org.eclipse.jgit.storage.file.FileRepository;
 import org.eclipse.jgit.transport.*;
 
@@ -95,19 +102,42 @@ public class GitConnector implements IGitConnector {
     }
 
     private void traverseChanges(ChangeSetListBuilder builder) throws GitException {
-
+        List<String> changedFileNames = new ArrayList<String>();
         Iterable<RevCommit> commits = getCommits();
 
         for (RevCommit commit : commits) {
-
+            try {
+                changedFileNames = new ArrayList<String>();
+            //RevCommit parent = commit.getParent(0);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                DiffFormatter df = new DiffFormatter(out);
+                df.setRepository(local);
+                df.setDiffComparator(RawTextComparator.DEFAULT);
+                df.setDetectRenames(true);
+                List<DiffEntry> diffs = df.scan(commit.getParent(0).getTree(), commit.getTree());
+                for (DiffEntry diff : diffs) {
+                    df.format(diff);
+                    diff.getOldId();
+                    String diffText = out.toString("UTF-8");
+                                        changedFileNames.add(diff.getNewPath());
+                   // LOG.info("Found Diff Name " + diff.getNewPath());
+                   // LOG.info("Found DiffText" + diffText);
+                    out.reset();
+                }
+            } catch  (Exception ex) {
+                 LOG.error("Tree couldn't be processed:", ex);
+            }
+            
             // jGit returns data in seconds
             long millisecond = commit.getCommitTime() *  1000l;
             ChangeSetInfo info = new ChangeSetInfo(
                     gitConnection,
                     commit.getAuthorIdent().getName(),
                     commit.getFullMessage().trim(),
+                    changedFileNames,
                     commit.getId().getName(),
-                    new Date(millisecond));
+                    new Date(millisecond),
+                    new LinkedList<String>());
 
             if(gitConnection.getUseBranchName()) {
                 List<String> branches = getBranchNames(commit);
@@ -283,8 +313,8 @@ public class GitConnector implements IGitConnector {
 
         try {
         	tn.fetch(new ProgressMonitor() {
-				public void beginTask(String taskName, int totalWork) {LOG.debug(taskName + ", total subtasks: " + totalWork);}
-				public void start(int totalTasks) { LOG.debug("Starting task, total tasks: " + totalTasks); }
+				public void beginTask(String taskName, int totalWork) {LOG.info(taskName + ", total subtasks: " + totalWork);}
+				public void start(int totalTasks) { LOG.info("Starting task, total tasks: " + totalTasks); }
 				public void update(int completed) {}
 				public void endTask() {}
 				public boolean isCancelled() {return false;}}

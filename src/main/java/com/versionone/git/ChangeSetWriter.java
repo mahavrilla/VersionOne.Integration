@@ -23,6 +23,7 @@ public class ChangeSetWriter implements IChangeSetWriter {
     private static final String ON_MENU_ATTRIBUTE = "OnMenu";
     private static final String PRIMARY_WORKITEMS_ATTRIBUTE = "PrimaryWorkitems";
     private static final String LINKS_ATTRIBUTE = "Links.URL";
+    private static final String LINKS_NAME_ATTRIBUTE = "Links.Name";
     private static final String CHILDREN_ME_AND_DOWN_ATTRIBUTE_PREFIX = "PrimaryWorkitem.ChildrenMeAndDown";
     private static final String STORY_NAME = "Plural'Story";
     private static final String DEFECT_NAME = "Plural'Defect";
@@ -74,6 +75,7 @@ public class ChangeSetWriter implements IChangeSetWriter {
 
         try {
             changeSet = getChangeSet(changeSetInfo, affectedWorkitems);
+
         } catch (Exception ex) {
            logAndThrow(errorMessagePrefix + ex.getMessage(), ex);
         }
@@ -107,21 +109,25 @@ public class ChangeSetWriter implements IChangeSetWriter {
 
     private void saveLink(Asset changeSet, ChangeSetInfo changeSetInfo) throws V1Exception {
 
-        Attribute linkUrlAttribute = changeSet.getAttribute(getChangeSetType().getAttributeDefinition(LINKS_ATTRIBUTE));
+        Attribute linkUrlAttribute = changeSet.getAttribute(getChangeSetType().getAttributeDefinition(LINKS_NAME_ATTRIBUTE));
 
-        if (shouldCreateURL(changeSetInfo.getLinkUrl(), linkUrlAttribute)) {
-            Asset newLink = connector.getServices().createNew(getLinkType(), changeSet.getOid().getMomentless());
-            newLink.setAttributeValue(getLinkType().getAttributeDefinition(NAME_ATTRIBUTE), changeSetInfo.getLinkName());
-            newLink.setAttributeValue(getLinkType().getAttributeDefinition(URL_ATTRIBUTE), changeSetInfo.getLinkUrl());
-            newLink.setAttributeValue(getLinkType().getAttributeDefinition(ON_MENU_ATTRIBUTE), changeSetInfo.isLinkOnMenu());
+        for(String fileName : changeSetInfo.getChangedFiles()) {
+            String fileNameToCompare = fileName.substring(fileName.lastIndexOf("/") + 1);
+            if (shouldCreateURL(fileNameToCompare, linkUrlAttribute)) {
 
-            connector.getServices().save(newLink, changeSetConfig.getChangeComment());
+                Asset newLink = connector.getServices().createNew(getLinkType(), changeSet.getOid().getMomentless());
+                newLink.setAttributeValue(getLinkType().getAttributeDefinition(NAME_ATTRIBUTE), fileNameToCompare);
+                newLink.setAttributeValue(getLinkType().getAttributeDefinition(URL_ATTRIBUTE), changeSetInfo.getLinkUrl(fileName));
+                newLink.setAttributeValue(getLinkType().getAttributeDefinition(ON_MENU_ATTRIBUTE), changeSetInfo.isLinkOnMenu());
+
+                connector.getServices().save(newLink, changeSetConfig.getChangeComment());
+            }
         }
     }
 
     private Asset saveChangeSet(Asset changeSet, ChangeSetInfo changeSetInfo, List<Oid> workitems) throws V1Exception {
 
-        changeSet.setAttributeValue(getChangeSetType().getAttributeDefinition(NAME_ATTRIBUTE), changeSetInfo.getName(changeSetConfig));
+        //changeSet.setAttributeValue(getChangeSetType().getAttributeDefinition(NAME_ATTRIBUTE), changeSetInfo.getName(changeSetConfig));
         changeSet.setAttributeValue(getChangeSetType().getAttributeDefinition(DESCRIPTION_ATTRIBUTE), changeSetInfo.getMessage());
 
         for (Oid oid : workitems) {
@@ -137,11 +143,12 @@ public class ChangeSetWriter implements IChangeSetWriter {
         if (linkUrlAttribute == null) {
             return true;
         }
-
+        //LOG.info("Attribute To Compare " + url);
         for (Object value : linkUrlAttribute.getValues()) {
             String strValue = value.toString();
-
+            //LOG.info("Attribute " + strValue);
             if (strValue.compareToIgnoreCase(url) == 0) {
+               // LOG.info("NOT CREATING LINK ");
                 return false;
             }
         }
@@ -151,8 +158,9 @@ public class ChangeSetWriter implements IChangeSetWriter {
 
     private Asset getChangeSet(ChangeSetInfo changeSetInfo, List<Oid> affectedWorkitems) throws V1Exception {
         Asset changeSet = null;
-
-        Asset[] list = findExistingChangeset(changeSetInfo.getRevision()).getAssets();
+        String changesetName = changeSetInfo.getMessage().substring(0, changeSetInfo.getMessage().indexOf(" ")) + " Components";
+       // LOG.info("BL ITEM :" + changesetName );
+        Asset[] list = findExistingChangeset(changesetName).getAssets();
 
         if (list.length > 0) {
             changeSet = list[0];
@@ -163,8 +171,7 @@ public class ChangeSetWriter implements IChangeSetWriter {
         } else {
             if (shouldCreate(affectedWorkitems)) {
                 changeSet = connector.getServices().createNew(getChangeSetType(), Oid.Null);
-                changeSet.setAttributeValue(getChangeSetType().getAttributeDefinition(REFERENCE_ATTRIBUTE),
-                        changeSetInfo.getRevision());
+                changeSet.setAttributeValue(getChangeSetType().getAttributeDefinition(NAME_ATTRIBUTE), changesetName);
             } else {
                 LOG.warn("Ignoring changeset for commit " + changeSetInfo.getRevision() + " as no affected workitems were found");
             }
@@ -174,12 +181,12 @@ public class ChangeSetWriter implements IChangeSetWriter {
     }
 
     private QueryResult findExistingChangeset(String revision) throws OidException, APIException, ConnectionException {
-        FilterTerm term = new FilterTerm(getChangeSetType().getAttributeDefinition(REFERENCE_ATTRIBUTE));
+        FilterTerm term = new FilterTerm(getChangeSetType().getAttributeDefinition(NAME_ATTRIBUTE));
         term.equal(revision);
 
         Query q = new Query(getChangeSetType());
         q.getSelection().add(getChangeSetType().getAttributeDefinition(REFERENCE_ATTRIBUTE));
-        q.getSelection().add(getChangeSetType().getAttributeDefinition(LINKS_ATTRIBUTE));
+        q.getSelection().add(getChangeSetType().getAttributeDefinition(LINKS_NAME_ATTRIBUTE));
         q.setFilter(term);
         q.setPaging(new Paging(0, 1));
 

@@ -137,6 +137,13 @@ public class ChangeSetInfo {
         return gitConnection.getLink().getNameTemplate().replace("{0}", revision);
     }
 
+    public String getLinkName(String fileName) {
+        if (gitConnection.getLink() == null || gitConnection.getLink().getNameTemplate() == null)
+            return null;
+
+        return gitConnection.getLink().getNameTemplate().replace("{0}", fileName);
+    }
+
     /**
      * Inserts the commit ID into the link URL template set for the related Git connection where this change was detected.
      * @return Link URL to use in VersionOne
@@ -146,6 +153,13 @@ public class ChangeSetInfo {
             return null;
 
         return gitConnection.getLink().getUrlTemplate().replace("{0}", revision);
+    }
+
+    public String getLinkUrl(String fileName) {
+        if (gitConnection.getLink() == null || gitConnection.getLink().getUrlTemplate() == null)
+            return null;
+
+        return gitConnection.getLink().getUrlTemplate().replace("{0}", fileName);
     }
 
     public Boolean isLinkOnMenu() {
