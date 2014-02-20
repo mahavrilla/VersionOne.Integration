@@ -8,6 +8,8 @@ import org.apache.log4j.Logger;
 import org.eclipse.jgit.util.StringUtils;
 
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class ChangeSetWriter implements IChangeSetWriter {
     private final Logger LOG = Logger.getLogger("GitIntegration");
@@ -158,8 +160,17 @@ public class ChangeSetWriter implements IChangeSetWriter {
 
     private Asset getChangeSet(ChangeSetInfo changeSetInfo, List<Oid> affectedWorkitems) throws V1Exception {
         Asset changeSet = null;
-        String changesetName = changeSetInfo.getMessage().substring(0, changeSetInfo.getMessage().indexOf(" ")) + " Components";
-       // LOG.info("BL ITEM :" + changesetName );
+
+        //See if the Backlog Item name is in the commit and get it. 
+        Pattern pattern = Pattern.compile("[A-Z]{1,2}-[0-9]+");
+        Matcher matcher = pattern.matcher(changeSetInfo.getMessage());
+        String changesetName = "";
+        
+        if( matcher.find()) {
+            changesetName = matcher.group(0) + " Components";
+        }
+       //LOG.info("BL ITEM :" + changesetName );
+        
         Asset[] list = findExistingChangeset(changesetName).getAssets();
 
         if (list.length > 0) {

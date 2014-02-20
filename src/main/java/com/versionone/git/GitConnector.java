@@ -16,6 +16,8 @@ import org.eclipse.jgit.revwalk.RevSort;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.RawTextComparator;
@@ -106,15 +108,25 @@ public class GitConnector implements IGitConnector {
         Iterable<RevCommit> commits = getCommits();
 
         for (RevCommit commit : commits) {
+
             try {
+                RevCommit parent = null;
+
                 changedFileNames = new ArrayList<String>();
-            //RevCommit parent = commit.getParent(0);
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 DiffFormatter df = new DiffFormatter(out);
                 df.setRepository(local);
                 df.setDiffComparator(RawTextComparator.DEFAULT);
                 df.setDetectRenames(true);
-                List<DiffEntry> diffs = df.scan(commit.getParent(0).getTree(), commit.getTree());
+                List<DiffEntry> diffs = new ArrayList<DiffEntry>();
+                
+                if( commit.getParent(0) != null) {
+                    diffs = df.scan(commit.getParent(0).getTree(), commit.getTree());
+                    LOG.info("commit has parent");
+                } else {
+                    RevWalk rw = new RevWalk(local);
+                    diffs = df.scan(new EmptyTreeIterator(), new CanonicalTreeParser(null, rw.getObjectReader(), commit.getTree()));
+                }
                 for (DiffEntry diff : diffs) {
                     df.format(diff);
                     diff.getOldId();
@@ -124,6 +136,7 @@ public class GitConnector implements IGitConnector {
                    // LOG.info("Found DiffText" + diffText);
                     out.reset();
                 }
+                df.release();
             } catch  (Exception ex) {
                  LOG.error("Tree couldn't be processed:", ex);
             }
