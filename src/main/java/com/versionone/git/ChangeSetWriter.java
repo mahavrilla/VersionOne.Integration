@@ -160,14 +160,16 @@ public class ChangeSetWriter implements IChangeSetWriter {
 
     private Asset getChangeSet(ChangeSetInfo changeSetInfo, List<Oid> affectedWorkitems) throws V1Exception {
         Asset changeSet = null;
-
         //See if the Backlog Item name is in the commit and get it. 
         Pattern pattern = Pattern.compile("[A-Z]{1,2}-[0-9]+");
-        Matcher matcher = pattern.matcher(changeSetInfo.getMessage());
+        Matcher messageMatcher = pattern.matcher(changeSetInfo.getMessage());
+        Matcher branchMatcher = pattern.matcher(changeSetInfo.getBranchName());
         String changesetName = "";
         
-        if( matcher.find()) {
-            changesetName = matcher.group(0) + " Components";
+        if( messageMatcher.find()) {
+            changesetName = messageMatcher.group(0) + " Components";
+        } else if (branchMatcher.find()) {
+            changesetName = branchMatcher.group(0) + " Components";
         }
        //LOG.info("BL ITEM :" + changesetName );
         

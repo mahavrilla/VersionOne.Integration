@@ -17,12 +17,17 @@ public class ChangeSetInfo {
     private final Date changeDate;
     private final String revision;
     private final List<String> references;
+    private final String branchName; 
+
+    public ChangeSetInfo(GitConnection gitConnection, String author, String message, List<String> changedFiles, String revision, Date changeDate, List<String> references) {
+        this(gitConnection, author, message, new LinkedList<String>(), revision, changeDate, references, null);
+    }
 
     public ChangeSetInfo(GitConnection gitConnection, String author, String message, String revision, Date changeDate) {
         this(gitConnection, author, message, new LinkedList<String>(), revision, changeDate, new LinkedList<String>());
     }
 
-    public ChangeSetInfo(GitConnection gitConnection, String author, String message, List<String> changedFiles, String revision, Date changeDate, List<String> references) {
+    public ChangeSetInfo(GitConnection gitConnection, String author, String message, List<String> changedFiles, String revision, Date changeDate, List<String> references, String branchName) {
         this.gitConnection = gitConnection;
         this.author = author;
         this.message = message;
@@ -30,6 +35,7 @@ public class ChangeSetInfo {
         this.revision = revision;
         this.changeDate = changeDate;
         this.references = references;
+        this.branchName = branchName;
     }
 
     public String getAuthor() {
@@ -54,6 +60,10 @@ public class ChangeSetInfo {
 
     public List<String> getReferences() {
         return references;
+    }
+
+    public String getBranchName() {
+        return branchName;
     }
 
     /**

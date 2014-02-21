@@ -3,6 +3,7 @@ package com.versionone.git;
 import com.versionone.git.configuration.GitConnection;
 import com.versionone.git.configuration.ChangeSet;
 import com.versionone.git.storage.IDbStorage;
+import com.versionone.git.ReviewedRevision;
 import java.io.ByteArrayOutputStream;
 
 import org.apache.log4j.Logger;
@@ -24,6 +25,7 @@ import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.diff.DiffEntry.ChangeType;
 import org.eclipse.jgit.storage.file.FileRepository;
 import org.eclipse.jgit.transport.*;
+
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -105,13 +107,12 @@ public class GitConnector implements IGitConnector {
 
     private void traverseChanges(ChangeSetListBuilder builder) throws GitException {
         List<String> changedFileNames = new ArrayList<String>();
-        Iterable<RevCommit> commits = getCommits();
+        Iterable<ReviewedRevision> commits = getCommits();
 
-        for (RevCommit commit : commits) {
-
+        for (ReviewedRevision revision : commits) {
+            RevCommit commit = revision.revCommit;
             try {
-                RevCommit parent = null;
-
+                
                 changedFileNames = new ArrayList<String>();
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 DiffFormatter df = new DiffFormatter(out);
@@ -122,18 +123,17 @@ public class GitConnector implements IGitConnector {
                 
                 if( commit.getParent(0) != null) {
                     diffs = df.scan(commit.getParent(0).getTree(), commit.getTree());
-                    LOG.info("commit has parent");
                 } else {
                     RevWalk rw = new RevWalk(local);
                     diffs = df.scan(new EmptyTreeIterator(), new CanonicalTreeParser(null, rw.getObjectReader(), commit.getTree()));
+                    LOG.debug("Commit Has No Parent. Using EmptyTreeIterator");
                 }
+
                 for (DiffEntry diff : diffs) {
                     df.format(diff);
                     diff.getOldId();
                     String diffText = out.toString("UTF-8");
-                                        changedFileNames.add(diff.getNewPath());
-                   // LOG.info("Found Diff Name " + diff.getNewPath());
-                   // LOG.info("Found DiffText" + diffText);
+                    changedFileNames.add(diff.getNewPath());
                     out.reset();
                 }
                 df.release();
@@ -150,8 +150,10 @@ public class GitConnector implements IGitConnector {
                     changedFileNames,
                     commit.getId().getName(),
                     new Date(millisecond),
-                    new LinkedList<String>());
+                    new LinkedList<String>(),
+                    revision.getBranchName());
 
+            //LOG.info("ReviewedRevision Branch" + info.getBranchName());
             if(gitConnection.getUseBranchName()) {
                 List<String> branches = getBranchNames(commit);
                 for(String branch : branches) {
@@ -165,8 +167,8 @@ public class GitConnector implements IGitConnector {
         }
     }
 
-    private Iterable<RevCommit> getCommits() throws GitException {
-        ArrayList<RevCommit> commits = new ArrayList<RevCommit>();
+    private Iterable<ReviewedRevision> getCommits() throws GitException {
+        ArrayList<ReviewedRevision> commits = new ArrayList<ReviewedRevision>();
 
         try {
             Git git = new Git(local);
@@ -198,7 +200,6 @@ public class GitConnector implements IGitConnector {
                     // will throw an IncorrectObjectTypeException when setting the log command range
                     if (!ref.contains("refs/remotes/origin"))
                         continue;
-
                     // For each branch traversal use a new log object, since they're intended to be called only once
                     LogCommand logCommand = git.log();
 
@@ -225,8 +226,11 @@ public class GitConnector implements IGitConnector {
 
                     if(!headHash.equals(persistedHash)) {
                         for (RevCommit commit : logCommand.call()) {
-                            if (!commits.contains(commit))
-                                commits.add(commit);
+                            ReviewedRevision reviewedCommit = new ReviewedRevision( commit);
+                            if (!commits.contains(reviewedCommit)) {
+                                reviewedCommit.setBranchName(ref);
+                                commits.add(reviewedCommit);
+                            }
                         }
                         storage.persistLastCommit(headHash, repositoryId, ref);
                     } else {
@@ -326,8 +330,8 @@ public class GitConnector implements IGitConnector {
 
         try {
         	tn.fetch(new ProgressMonitor() {
-				public void beginTask(String taskName, int totalWork) {LOG.info(taskName + ", total subtasks: " + totalWork);}
-				public void start(int totalTasks) { LOG.info("Starting task, total tasks: " + totalTasks); }
+				public void beginTask(String taskName, int totalWork) {LOG.debug(taskName + ", total subtasks: " + totalWork);}
+				public void start(int totalTasks) { LOG.debug("Starting task, total tasks: " + totalTasks); }
 				public void update(int completed) {}
 				public void endTask() {}
 				public boolean isCancelled() {return false;}}
@@ -340,10 +344,10 @@ public class GitConnector implements IGitConnector {
     /** Compares two commits and sorts them by commit time in ascending order */
     private class GitCommitComparator implements Comparator {
         public int compare(Object object1, Object object2) {
-            RevCommit commit1 = (RevCommit)object1;
-            RevCommit commit2 = (RevCommit)object2;
+            ReviewedRevision commit1 = (ReviewedRevision)object1;
+            ReviewedRevision commit2 = (ReviewedRevision)object2;
 
-            return commit1.getCommitTime() - commit2.getCommitTime();
+            return commit1.revCommit.getCommitTime() - commit2.revCommit.getCommitTime();
         }
     }
 }
